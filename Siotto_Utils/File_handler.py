@@ -3,6 +3,7 @@ import pandas as pd
 import csv
 from tkinter import filedialog, messagebox
 import codecs
+import re
 
 
 __author__ = "Andrea Siotto."
@@ -13,6 +14,14 @@ __version__ = "1.0"
 __maintainer__ = "Andrea Siotto"
 __email__ = "siotto.public@gmail.com"
 __status__ = "Development"
+
+
+def clean_filename(name: str, replacement: str = "_", replace_spaces=False) -> str:
+    # Remove or replace characters not allowed in filenames
+    name = re.sub(r'[<>:"/\\|?*]', replacement, name)  # Windows forbidden chars
+    if replace_spaces:
+        name = re.sub(r"\s+", replacement, name)  # Optional: Replace spaces
+    return name.strip(replacement)
 
 
 def check_UTF_8(file) -> bool:

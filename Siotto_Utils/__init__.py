@@ -9,7 +9,9 @@ from .File_handler import (
     read_csv,
     file_to_list,
     list_to_file,
+    clean_filename,
 )
+from .Json_handler import merge_jsons
 
 __all__ = [
     "check_UTF_8",
@@ -17,6 +19,8 @@ __all__ = [
     "read_csv",
     "file_to_list",
     "list_to_file",
+    "clean_filename",
+    "merge_jsons",
 ]
 
 __author__ = "Andrea Siotto"
