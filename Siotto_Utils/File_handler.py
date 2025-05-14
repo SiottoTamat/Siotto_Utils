@@ -1,9 +1,17 @@
-from typing import Tuple
-import pandas as pd
-import csv
-from tkinter import filedialog, messagebox
 import codecs
+import csv
+import inspect
 import re
+from pathlib import Path
+from tkinter import filedialog, messagebox
+from typing import Tuple
+
+import pandas as pd
+
+from Siotto_Utils.logger_utils import setup_logger
+from Siotto_Utils.Json_handler import excel_to_json
+
+logger = setup_logger(__name__)
 
 
 __author__ = "Andrea Siotto."
@@ -16,9 +24,13 @@ __email__ = "siotto.public@gmail.com"
 __status__ = "Development"
 
 
-def clean_filename(name: str, replacement: str = "_", replace_spaces=False) -> str:
+def clean_filename(
+    name: str,
+    replacement: str = "_",
+    replace_spaces=False,
+) -> str:
     # Remove or replace characters not allowed in filenames
-    name = re.sub(r'[<>:"/\\|?*]', replacement, name)  # Windows forbidden chars
+    name = re.sub(r'[<>:"/\\|?*]', replacement, name)  # sanitize
     if replace_spaces:
         name = re.sub(r"\s+", replacement, name)  # Optional: Replace spaces
     return name.strip(replacement)
@@ -37,10 +49,15 @@ def check_UTF_8(file) -> bool:
         return False
 
 
-def read_excel(filename: str, sheet=0, to_dict=True) -> list[dict] | list[list]:
+def read_excel(
+    filename: str,
+    sheet=0,
+    to_dict=True,
+) -> list[dict] | list[list]:
     """
-    Takes the path of the file and returns a list of dictionaries or a list of lists.
-    Optionally takes a specific name of the sheet. If the argument to_dict is False,
+    Takes the path of the file and returns a list of
+    dictionaries or a list of lists. Optionally takes
+    a specific name of the sheet. If the argument to_dict is False,
     returns a list of lists.
     Default sheet name is "Data"
     """
@@ -70,7 +87,9 @@ def read_csv(filename: str, to_dict=True) -> list[dict] | list[list]:
             headers = next(reader)
             if to_dict:
                 for row in reader:
-                    locations.append({key: value for key, value in zip(headers, row)})
+                    locations.append(
+                        {key: value for key, value in zip(headers, row)},
+                    )
             else:
                 locations.append(headers)
                 locations.extend(reader)
@@ -83,9 +102,11 @@ def file_to_list(
     defaultDir: str, filename: str = "", to_dict=True
 ) -> Tuple[list[dict] | list[list], str]:
     """
-    The main function to open a csv or excel file and produce a list of dictionaries.
-    It opens an openfiledialog and then from the chosen file returns the list. Each row is an
-    element of the list as a dictionary with the key as the name of the column and the value as the value
+    The main function to open a csv or excel file
+    and produce a list of dictionaries.
+    It opens an openfiledialog and then from the chosen file returns the list.
+    Each row is an element of the list as a dictionary with the key as the name
+    of the column and the value as the value
     of the cell.
     """
     allowed_files = [
@@ -130,7 +151,9 @@ def list_to_file(list_data: list, defaultDir: str) -> None:
     ]
 
     filename = filedialog.asksaveasfilename(
-        filetypes=allowed_files, initialdir=defaultDir, defaultextension=".xlsx"
+        filetypes=allowed_files,
+        initialdir=defaultDir,
+        defaultextension=".xlsx",
     )
     if not filename or not list_data:
         return
@@ -151,6 +174,46 @@ def list_to_file(list_data: list, defaultDir: str) -> None:
         else:
             df.to_excel(filename, index=False)
 
-        messagebox.showinfo(title="Success", message="File saved successfully.")
+        messagebox.showinfo(
+            title="Success",
+            message="File saved successfully.",
+        )
     except Exception as e:
-        messagebox.showerror(title="Save Error", message=f"Failed to save file: {e}")
+        messagebox.showerror(
+            title="Save Error",
+            message=f"Failed to save file: {e}",
+        )
+
+
+def excel_to_csv(filename: Path) -> None:
+    """
+    Converts each worksheet in an Excel file into separate CSV files.
+    Each CSV is named <filename>_<sheet_name>.csv
+    and saved in the same directory.
+    Logs each conversion using a function-specific logger.
+    """
+    func_name = inspect.currentframe().f_code.co_name
+    logger = setup_logger(f"{__name__}.{func_name}")
+    filename = Path(filename)
+    stem = filename.stem
+    try:
+        sheets = pd.read_excel(filename, sheet_name=None)
+    except Exception as e:
+        logger.error(f"Failed to read Excel file: {filename} — {e}")
+        return
+    for sheet_name, df in sheets.items():
+        safe_sheet_name = re.sub(r"[^\w\d_-]", "_", sheet_name.strip())
+        csv_filename = filename.parent / Path(f"{stem}_{safe_sheet_name}.csv")
+        df.to_csv(csv_filename, index=False, encoding="utf-8-sig")
+        logger.info(f"Saved {csv_filename} as a CSV file.")
+
+
+def excel_to_csv_json_recursive(root_dir: Path) -> None:
+    """
+    Recursively converts all Excel files in a directory to CSV and JSON files.
+    """
+    root_dir = Path(root_dir)
+    for path in root_dir.rglob("*"):
+        if path.is_file() and path.suffix.lower() == ".xlsx":
+            excel_to_csv(path)
+            excel_to_json(path)
