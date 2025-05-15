@@ -24,12 +24,12 @@ def write_file_excel(
     wb = Workbook()
     ws = wb.active
     ws.title = title
-    ws.append(["Relative Path", "Description", "Author"])
+    ws.append(["Relative Path", "Type", "Description", "Author"])
 
     for path in root_dir.rglob("*"):
         if path.is_file() and path.suffix.lower() in allowed_extensions:
             rel_path = str(path.relative_to(root_dir))
-            ws.append([rel_path, "", ""])
+            ws.append([rel_path, path.suffix, "", ""])
 
     wb.save(output_xlsx)
 
@@ -62,11 +62,12 @@ def generate_reports(
 
 
 # Example usage
-# if __name__ == "__main__":
-#     generate_reports(
-#         r"path...\@@Deliverables_202505",
-#         ["png", "jpg", "xlsx", "csv", "docx", "pdf", "aprx", "kml"],
-#         "ASRfolder_tree.txt",
-#         "ASR_selected_files.xlsx",
-#         "ASRP_Project_Files",
-#     )
+
+if __name__ == "__main__":
+    generate_reports(
+        r"...\@@Deliverables_202505",
+        ["png", "jpg", "xlsx", "csv", "docx", "pdf", "aprx", "kml", "kmz"],
+        "ASRfolder_tree.txt",
+        "ASR_selected_files.xlsx",
+        "ASRP_Project_Files",
+    )
